@@ -1,7 +1,7 @@
-
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { OrdersProvider } from '@/contexts/OrdersContext';
 import { useFonts } from "expo-font";
@@ -9,6 +9,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   useFrameworkReady();
+
   const [loaded] = useFonts({
     "IBMPlexSansArabic-Regular": require("../assets/fonts/IBMPlexSansArabic-Regular.ttf"),
     "IBMPlexSansArabic-Medium": require("../assets/fonts/IBMPlexSansArabic-Medium.ttf"),
@@ -25,11 +26,13 @@ export default function RootLayout() {
   }
 
   return (
-    <OrdersProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </OrdersProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <OrdersProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </OrdersProvider>
+    </GestureHandlerRootView>
   );
 }

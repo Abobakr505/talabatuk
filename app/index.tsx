@@ -185,6 +185,7 @@ export default function HomeScreen() {
       )}
 
       <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
+        
         <TouchableOpacity onPress={handleAddPress}>
           <LinearGradient colors={["#3b82f6", "#2563eb"]} style={styles.fabGradient}>
             <Plus size={28} color="#fff" strokeWidth={3} />

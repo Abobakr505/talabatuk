@@ -1,13 +1,15 @@
-// ======================= OrderCard.tsx =======================
-import React, { memo } from 'react';
+import React, { memo, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  Animated,
 } from 'react-native';
 import { Order } from '@/types/order';
 import { Check, Pencil, Trash2 } from 'lucide-react-native';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 interface OrderCardProps {
   order: Order;
@@ -22,86 +24,137 @@ export const OrderCard = memo(function OrderCard({
   onEdit,
   onDelete,
 }: OrderCardProps) {
+
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  // 📳 Haptic
+  const triggerHaptic = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  // 👉 أثناء السحب
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX } }],
+    { useNativeDriver: true }
+  );
+
+  // 👉 عند الإفلات
+  const onHandlerStateChange = (event: any) => {
+    if (event.nativeEvent.oldState === 4) { // END
+      const dx = event.nativeEvent.translationX;
+
+      if (dx > 120) {
+        // 👉 يمين = إكمال
+        triggerHaptic();
+        onToggle(order.id);
+      } else if (dx < -120) {
+        // 👉 شمال = حذف
+        triggerHaptic();
+        onDelete(order.id);
+      }
+
+      // رجوع للمكان
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+      }).start();
+    }
+  };
+
   return (
-    <View
-      style={[
-        styles.card,
-        order.isPurchased && styles.cardPurchased,
-      ]}
+    <PanGestureHandler
+      onGestureEvent={onGestureEvent}
+      onHandlerStateChange={onHandlerStateChange}
     >
-      <TouchableOpacity
-        style={styles.checkButton}
-        onPress={() => onToggle(order.id)}
-        activeOpacity={0.7}
+      <Animated.View
+        style={[
+          styles.card,
+          order.isPurchased && styles.cardPurchased,
+          { transform: [{ translateX }] },
+        ]}
       >
-        <View
-          style={[
-            styles.checkbox,
-            order.isPurchased && styles.checkboxChecked,
-          ]}
+        <TouchableOpacity
+          style={styles.checkButton}
+          onPress={() => {
+            triggerHaptic();
+            onToggle(order.id);
+          }}
         >
-          {order.isPurchased && <Check size={16} color="#fff" />}
-        </View>
-      </TouchableOpacity>
-
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.icon}>{order.icon}</Text>
-          <Text
+          <View
             style={[
-              styles.name,
-              order.isPurchased && styles.textPurchased,
+              styles.checkbox,
+              order.isPurchased && styles.checkboxChecked,
             ]}
           >
-            {order.name}
-          </Text>
-        </View>
+            {order.isPurchased && <Check size={16} color="#fff" />}
+          </View>
+        </TouchableOpacity>
 
-        <View style={styles.details}>
-          <Text
-            style={[
-              styles.quantity,
-              order.isPurchased && styles.textPurchased,
-            ]}
-          >
-            الكمية: {order.quantity}
-          </Text>
-          {order.notes && (
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.icon}>{order.icon}</Text>
             <Text
               style={[
-                styles.notes,
+                styles.name,
                 order.isPurchased && styles.textPurchased,
               ]}
-              numberOfLines={2}
             >
-              {order.notes}
+              {order.name}
             </Text>
-          )}
-        </View>
-      </View>
+          </View>
 
-      <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onEdit(order)}
-          disabled={order.isPurchased}
-        >
-          <Pencil
-            size={20}
-            color={order.isPurchased ? '#ccc' : '#666'}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => onDelete(order.id)}
-        >
-          <Trash2 size={20} color="#ef4444" />
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.details}>
+            <Text
+              style={[
+                styles.quantity,
+                order.isPurchased && styles.textPurchased,
+              ]}
+            >
+              الكمية: {order.quantity}
+            </Text>
+            {order.notes && (
+              <Text
+                style={[
+                  styles.notes,
+                  order.isPurchased && styles.textPurchased,
+                ]}
+                numberOfLines={2}
+              >
+                {order.notes}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              triggerHaptic();
+              onEdit(order);
+            }}
+            disabled={order.isPurchased}
+          >
+            <Pencil
+              size={20}
+              color={order.isPurchased ? '#ccc' : '#666'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              triggerHaptic();
+              onDelete(order.id);
+            }}
+          >
+            <Trash2 size={20} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </PanGestureHandler>
   );
 }, (prev, next) => {
-  // 🔥 أهم حل: قارن القيم بدل object
   return (
     prev.order.id === next.order.id &&
     prev.order.isPurchased === next.order.isPurchased &&
