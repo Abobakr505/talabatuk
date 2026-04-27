@@ -1,6 +1,5 @@
-
-
-import React from 'react';
+// ======================= OrderCard.tsx =======================
+import React, { memo } from 'react';
 import {
   View,
   Text,
@@ -12,12 +11,12 @@ import { Check, Pencil, Trash2 } from 'lucide-react-native';
 
 interface OrderCardProps {
   order: Order;
-  onToggle: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onToggle: (id: string) => void;
+  onEdit: (order: Order) => void;
+  onDelete: (id: string) => void;
 }
 
-export function OrderCard({
+export const OrderCard = memo(function OrderCard({
   order,
   onToggle,
   onEdit,
@@ -32,7 +31,7 @@ export function OrderCard({
     >
       <TouchableOpacity
         style={styles.checkButton}
-        onPress={onToggle}
+        onPress={() => onToggle(order.id)}
         activeOpacity={0.7}
       >
         <View
@@ -84,7 +83,7 @@ export function OrderCard({
       <View style={styles.actions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={onEdit}
+          onPress={() => onEdit(order)}
           disabled={order.isPurchased}
         >
           <Pencil
@@ -92,13 +91,25 @@ export function OrderCard({
             color={order.isPurchased ? '#ccc' : '#666'}
           />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => onDelete(order.id)}
+        >
           <Trash2 size={20} color="#ef4444" />
         </TouchableOpacity>
       </View>
     </View>
   );
-}
+}, (prev, next) => {
+  // 🔥 أهم حل: قارن القيم بدل object
+  return (
+    prev.order.id === next.order.id &&
+    prev.order.isPurchased === next.order.isPurchased &&
+    prev.order.name === next.order.name &&
+    prev.order.quantity === next.order.quantity &&
+    prev.order.notes === next.order.notes
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

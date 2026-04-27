@@ -1,30 +1,21 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  StyleSheet,
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Animated,
+  StyleSheet,
 } from 'react-native';
 import { useOrders } from '@/contexts/OrdersContext';
 import { OrderCard } from '@/components/OrderCard';
 import { OrderModal } from '@/components/OrderModal';
-import { CelebrationMessage } from '@/components/CelebrationMessage';
 import { Order } from '@/types/order';
-import { Plus, ShoppingBag, Trash2 } from 'lucide-react-native';
+import { Plus, BadgeCheck, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  useDerivedValue,
-  interpolate,
-} from 'react-native-reanimated';
 
 export default function HomeScreen() {
   const {
@@ -38,76 +29,82 @@ export default function HomeScreen() {
     completedCount,
     deleteAllOrders,
   } = useOrders();
+
   const [modalVisible, setModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | undefined>();
-  
-  // لأنيميشن الـ FAB
-  const fabScale = useSharedValue(1);
-  const animatedFabStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: withSpring(fabScale.value) }],
-  }));
 
-  // لأنيميشن شريط التقدم
+  const fabScale = useRef(new Animated.Value(1)).current;
+  const animatedProgress = useRef(new Animated.Value(0)).current;
+
   const progress = orders.length > 0 ? completedCount / orders.length : 0;
-  const animatedProgress = useSharedValue(progress);
 
-  // تحديث القيمة مع أنيميشن سلس عند تغيير التقدم
   useEffect(() => {
-    animatedProgress.value = withTiming(progress, { duration: 800 });
+    Animated.timing(animatedProgress, {
+      toValue: progress,
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
   }, [progress]);
 
-  // عرض نسبة مئوية متحركة
-  const animatedWidth = useDerivedValue(() => {
-    return interpolate(animatedProgress.value, [0, 1], [0, 100]);
+  const widthInterpolated = animatedProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0%', '100%'],
   });
 
-  const animatedProgressStyle = useAnimatedStyle(() => ({
-    width: `${animatedWidth.value}%`,
-  }));
+  const handleAddPress = useCallback(() => {
+    Animated.sequence([
+      Animated.spring(fabScale, { toValue: 1.15, useNativeDriver: true }),
+      Animated.spring(fabScale, { toValue: 1, useNativeDriver: true }),
+    ]).start();
 
-  const handleAddPress = () => {
-    fabScale.value = 1.15;
-    setTimeout(() => { fabScale.value = 1; }, 200);
     setEditingOrder(undefined);
     setModalVisible(true);
-  };
+  }, []);
 
-  const handleEditPress = (order: Order) => {
+  const handleEdit = useCallback((order: Order) => {
     setEditingOrder(order);
     setModalVisible(true);
-  };
+  }, []);
 
-  const handleSave = async (order: Order) => {
+  const handleSave = useCallback(async (order: Order) => {
     if (editingOrder) {
       await updateOrder(order);
     } else {
       await addOrder(order);
     }
-  };
+  }, [editingOrder, updateOrder, addOrder]);
 
-  const handleDelete = (orderId: string) => {
-    Alert.alert('حذف الطلب', 'هل أنت متأكد من حذف هذا الطلب؟', [
+  const handleDelete = useCallback((id: string) => {
+    Alert.alert('حذف الطلب', 'هل أنت متأكد؟', [
       { text: 'إلغاء', style: 'cancel' },
-      {
-        text: 'حذف',
-        style: 'destructive',
-        onPress: () => deleteOrder(orderId),
-      },
+      { text: 'حذف', style: 'destructive', onPress: () => deleteOrder(id) },
     ]);
-  };
+  }, [deleteOrder]);
 
-  const handleDeleteAll = () => {
-    Alert.alert('مسح الكل', 'هل أنت متأكد من مسح جميع الطلبات؟', [
+  const handleDeleteAll = useCallback(() => {
+    Alert.alert('مسح الكل', 'هل أنت متأكد؟', [
       { text: 'إلغاء', style: 'cancel' },
-      {
-        text: 'مسح الكل',
-        style: 'destructive',
-        onPress: () => deleteAllOrders(),
-      },
+      { text: 'مسح الكل', style: 'destructive', onPress: deleteAllOrders },
     ]);
-  };
+  }, [deleteAllOrders]);
 
-  const showCelebration = orders.length > 0 && remainingCount === 0;
+  // 🔥 FIX: prevent UI blocking / flicker on toggle
+  const handleToggle = useCallback((id: string) => {
+    startTransition(() => {
+      togglePurchased(id);
+    });
+  }, [togglePurchased]);
+
+  const renderItem = useCallback(({ item }: { item: Order }) => {
+    return (
+      <OrderCard
+        order={item}
+        onToggle={handleToggle}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
+    );
+  }, [handleToggle, handleEdit, handleDelete]);
 
   if (loading) {
     return (
@@ -119,15 +116,13 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#3b82f6', '#2563eb']}
-        style={styles.header}
-      >
+      <LinearGradient colors={["#3b82f6", "#2563eb"]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
-            <ShoppingBag size={42} color="#fff" />
+            <BadgeCheck size={42} color="#fff" />
             <Text style={styles.headerTitle}>طلباتك</Text>
           </View>
+
           {orders.length > 0 && (
             <>
               <View style={styles.stats}>
@@ -145,10 +140,11 @@ export default function HomeScreen() {
                 </View>
               </View>
 
-              {/* شريط التقدم المتحرك الجديد */}
               <View style={styles.progressContainer}>
                 <View style={styles.progressBackground}>
-                  <Animated.View style={[styles.progressFill, animatedProgressStyle]} />
+                  <Animated.View
+                    style={[styles.progressFill, { width: widthInterpolated }]}
+                  />
                 </View>
                 <Text style={styles.progressText}>
                   {Math.round(progress * 100)}%
@@ -160,53 +156,37 @@ export default function HomeScreen() {
       </LinearGradient>
 
       <View style={styles.content}>
-{showCelebration && (
-  <CelebrationMessage visible={showCelebration} />
-)}
         {orders.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🛒</Text>
             <Text style={styles.emptyTitle}>لا توجد طلبات</Text>
-            <Text style={styles.emptyText}>
-              ابدأ بإضافة طلباتك حتى لا تنساها
-            </Text>
+            <Text style={styles.emptyText}>ابدأ بإضافة طلباتك</Text>
           </View>
         ) : (
           <FlatList
             data={orders}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <OrderCard
-                order={item}
-                onToggle={() => togglePurchased(item.id)}
-                onEdit={() => handleEditPress(item)}
-                onDelete={() => handleDelete(item.id)}
-              />
-            )}
+            renderItem={renderItem}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews
+            initialNumToRender={10}
           />
         )}
       </View>
 
       {orders.length > 0 && (
         <TouchableOpacity style={styles.clearAllButton} onPress={handleDeleteAll}>
-          <LinearGradient
-            colors={['#ef4444', '#dc2626']}
-            style={styles.clearAllGradient}
-          >
+          <LinearGradient colors={["#ef4444", "#dc2626"]} style={styles.clearAllGradient}>
             <Trash2 size={24} color="#fff" />
             <Text style={styles.clearAllText}>مسح الكل</Text>
           </LinearGradient>
         </TouchableOpacity>
       )}
 
-      <Animated.View style={[styles.fab, animatedFabStyle]}>
+      <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
         <TouchableOpacity onPress={handleAddPress}>
-          <LinearGradient
-            colors={['#3b82f6', '#2563eb']}
-            style={styles.fabGradient}
-          >
+          <LinearGradient colors={["#3b82f6", "#2563eb"]} style={styles.fabGradient}>
             <Plus size={28} color="#fff" strokeWidth={3} />
           </LinearGradient>
         </TouchableOpacity>
@@ -234,17 +214,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 50,
+    paddingTop: 50,
+    paddingBottom: 40,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   headerContent: {
-    flex: 1,
-    justifyContent: 'center',
+    width: '100%',
     alignItems: 'center',
-    gap: 24,
+    justifyContent: 'flex-start',
+    gap: 20,
   },
   headerTop: {
     flexDirection: 'row',

@@ -1,3 +1,4 @@
+// OrdersContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Order } from '@/types/order';
 import { StorageService } from '@/services/storage';
@@ -11,6 +12,7 @@ interface OrdersContextType {
   togglePurchased: (orderId: string) => Promise<void>;
   remainingCount: number;
   completedCount: number;
+  deleteAllOrders: () => Promise<void>; // ✅ added
 }
 
 const OrdersContext = createContext<OrdersContextType | undefined>(undefined);
@@ -26,12 +28,14 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
   const loadOrders = async () => {
     setLoading(true);
     const loadedOrders = await StorageService.getOrders();
+
     const sorted = loadedOrders.sort((a, b) => {
       if (a.isPurchased !== b.isPurchased) {
         return a.isPurchased ? 1 : -1;
       }
       return b.createdAt - a.createdAt;
     });
+
     setOrders(sorted);
     setLoading(false);
   };
@@ -49,6 +53,18 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
   const deleteOrder = async (orderId: string) => {
     await StorageService.deleteOrder(orderId);
     await loadOrders();
+  };
+
+  const deleteAllOrders = async () => {
+    try {
+      // حذف من التخزين
+      await StorageService.clearOrders();
+
+      // تحديث فوري للواجهة
+      setOrders([]);
+    } catch (error) {
+      console.log('Error deleting all orders:', error);
+    }
   };
 
   const togglePurchased = async (orderId: string) => {
@@ -77,6 +93,7 @@ export function OrdersProvider({ children }: { children: React.ReactNode }) {
         togglePurchased,
         remainingCount,
         completedCount,
+        deleteAllOrders, // ✅ added
       }}
     >
       {children}
@@ -91,3 +108,4 @@ export function useOrders() {
   }
   return context;
 }
+

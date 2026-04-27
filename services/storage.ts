@@ -42,4 +42,13 @@ export const StorageService = {
     const filtered = orders.filter((o) => o.id !== orderId);
     await this.saveOrders(filtered);
   },
+
+  // ✅ الحل هنا
+  async clearOrders(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(ORDERS_KEY);
+    } catch (error) {
+      console.error('Error clearing orders:', error);
+    }
+  },
 };
