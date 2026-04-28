@@ -123,7 +123,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LinearGradient colors={["#3b82f6", "#2563eb"]} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerTop}>
@@ -194,16 +194,16 @@ export default function HomeScreen() {
 
       <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
       <VoiceButton
-  onResult={(text: string) => {
-    console.log("🎤 TEXT:", text); // 👈 مهم جدًا
-
-    addOrder({
-      id: Date.now().toString(),
-      name: text,
-      quantity: 1,
-      notes: '',
-      icon: '🛒',
-      isPurchased: false,
+  onResult={(orders) => {
+    orders.forEach((order) => {
+      addOrder({
+        id: Date.now().toString() + Math.random(),
+        name: order.name,
+        quantity: order.quantity,
+        notes: order.unit ? `الوحدة: ${order.unit}` : order.notes,
+        icon: order.emoji,
+        isPurchased: false,
+      });
     });
   }}
 />
@@ -220,7 +220,7 @@ export default function HomeScreen() {
         onClose={() => setModalVisible(false)}
         onSave={handleSave}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
   },
   header: {
-    paddingTop: 50,
+    paddingTop: 60,
     paddingBottom: 40,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 30,

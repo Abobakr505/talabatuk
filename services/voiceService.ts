@@ -1,32 +1,104 @@
 import axios from 'axios';
+import { Alert, Platform } from 'react-native';
 
-const API_KEY = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 
-export const speechToText = async (uri: string) => {
-  const formData = new FormData();
-
-  const responseBlob = await fetch(uri);
-  const blob = await responseBlob.blob();
-
-  formData.append('file', blob, 'recording.m4a');
-  formData.append('model', 'whisper-1');
-
+// ✅ الخطوة 1: تحويل الصوت لنص
+export const speechToText = async (uri: string): Promise<string> => {
   try {
+    // ✅ على iOS استخدم الـ URI مباشرة بدل fetch → blob
+    const formData = new FormData();
+    
+    formData.append('file', {
+      uri: uri,
+      type: 'audio/wav',
+      name: 'recording.wav',
+    } as any);
+    
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('language', 'ar');
+
     const response = await axios.post(
-      'https://api.openai.com/v1/audio/transcriptions',
+      'https://api.groq.com/openai/v1/audio/transcriptions',
       formData,
       {
         headers: {
-          Authorization: `Bearer ${API_KEY}`,
+          Authorization: `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 15000,
       }
     );
 
     return response.data.text;
-  } catch (error) {
-    console.log('❌ Speech error:', error);
-    console.log("API KEY:", API_KEY);
+
+  } catch (error: any) {
+    console.log('🔴 Status:', error?.response?.status);
+    console.log('🔴 Data:', JSON.stringify(error?.response?.data));
+    throw error;
+  }
+};
+
+// ✅ الخطوة 2: معالجة النص بالذكاء الاصطناعي
+export interface ParsedOrder {
+  name: string;
+  quantity: number;
+  unit: string;
+  category: string;
+  emoji: string;
+  notes: string;
+}
+
+export const parseOrderWithAI = async (text: string): Promise<ParsedOrder[]> => {
+  try {
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 1000,
+        messages: [
+          {
+            role: 'system',
+            content: `أنت مساعد ذكي لتحليل طلبات التسوق العربية. 
+أجب فقط بـ JSON صالح بدون أي نص إضافي أو backticks.`,
+          },
+          {
+            role: 'user',
+            content: `النص الصوتي: "${text}"
+
+استخرج كل المنتجات وأجب بهذا الشكل فقط:
+[
+  {
+    "name": "اسم المنتج مصحح",
+    "quantity": 1,
+    "unit": "كيلو",
+    "category": "خضار",
+    "emoji": "🥦",
+    "notes": ""
+  }
+]
+
+التصنيفات: خضار، فاكهة، لحوم، دواجن، أسماك، ألبان، مخبوزات، مشروبات، حبوب، منظفات، أخرى`,
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      }
+    );
+
+    const raw = response.data.choices[0].message.content.trim();
+    const clean = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+
+  } catch (error: any) {
+    console.log('❌ Status:', error?.response?.status);
+    console.log('❌ Data:', JSON.stringify(error?.response?.data, null, 2));
+    Alert.alert('خطأ', JSON.stringify(error?.response?.data) ?? 'فشل الاتصال');
     throw error;
   }
 };

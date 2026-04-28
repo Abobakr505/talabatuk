@@ -27,9 +27,6 @@
     },
     "android": {
       "package": "com.bakrcode5335.talabatuk"
-    },
-    "extra": {
-      "OPENAI_API_KEY": "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"
     }
   }
 }
