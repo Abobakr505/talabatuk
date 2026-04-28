@@ -65,9 +65,9 @@ export const VoiceButton = ({ onResult }: VoiceButtonProps) => {
         width: 64, height: 64, borderRadius: 32,
         justifyContent: 'center', alignItems: 'center',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3, shadowRadius: 8,
-        marginBottom: 8,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.06,
+        shadowRadius: 6,
       }}
     >
       <View>
