@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "talabatuk - طلباتك ",
+    "name": "talabatuk - طلباتك",
     "slug": "talabatuk",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,25 +8,30 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bakrcode5335.talabatuk"
     },
+
+    "android": {
+      "package": "com.bakrcode5335.talabatuk"
+    },
+
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/logo.png"
     },
+
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-web-browser",
-      "expo-speech-recognition"
+      "expo-web-browser"
     ],
+
     "experiments": {
       "typedRoutes": true
-    },
-    "android": {
-      "package": "com.bakrcode5335.talabatuk"
     }
   }
 }
