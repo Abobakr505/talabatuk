@@ -16,6 +16,7 @@ import { OrderModal } from '@/components/OrderModal';
 import { Order } from '@/types/order';
 import { Plus, BadgeCheck, Trash2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { VoiceButton } from '@/components/VoiceButton';
 
 export default function HomeScreen() {
   const {
@@ -37,7 +38,14 @@ export default function HomeScreen() {
   const animatedProgress = useRef(new Animated.Value(0)).current;
 
   const progress = orders.length > 0 ? completedCount / orders.length : 0;
-
+  const extractOrder = (text: string) => {
+    const match = text.match(/\\d+/);
+  
+    return {
+      quantity: match ? parseInt(match[0]) : 1,
+      name: text.replace(/\\d+/, '').trim(),
+    };
+  };
   useEffect(() => {
     Animated.timing(animatedProgress, {
       toValue: progress,
@@ -185,7 +193,20 @@ export default function HomeScreen() {
       )}
 
       <Animated.View style={[styles.fab, { transform: [{ scale: fabScale }] }]}>
-        
+      <VoiceButton
+  onResult={(text: string) => {
+    console.log("🎤 TEXT:", text); // 👈 مهم جدًا
+
+    addOrder({
+      id: Date.now().toString(),
+      name: text,
+      quantity: 1,
+      notes: '',
+      icon: '🛒',
+      isPurchased: false,
+    });
+  }}
+/>
         <TouchableOpacity onPress={handleAddPress}>
           <LinearGradient colors={["#3b82f6", "#2563eb"]} style={styles.fabGradient}>
             <Plus size={28} color="#fff" strokeWidth={3} />
@@ -328,10 +349,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+
     elevation: 8,
     borderRadius: 32,
   },
@@ -340,7 +358,11 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'center',    
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
   clearAllButton: {
     position: 'absolute',
