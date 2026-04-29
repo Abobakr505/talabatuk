@@ -8,30 +8,31 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bakrcode5335.talabatuk"
     },
-
     "android": {
       "package": "com.bakrcode5335.talabatuk"
     },
-
     "web": {
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/images/logo.png"
     },
-
     "plugins": [
       "expo-router",
       "expo-font",
       "expo-web-browser"
     ],
-
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ee2858b6-5de4-4bcb-ba09-1cea85c3c276"
+      }
     }
   }
 }

@@ -6,15 +6,23 @@ const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 // ✅ الخطوة 1: تحويل الصوت لنص
 export const speechToText = async (uri: string): Promise<string> => {
   try {
-    // ✅ على iOS استخدم الـ URI مباشرة بدل fetch → blob
     const formData = new FormData();
-    
-    formData.append('file', {
-      uri: uri,
-      type: 'audio/wav',
-      name: 'recording.wav',
-    } as any);
-    
+
+    if (Platform.OS === 'web') {
+      // ✅ على الويب: fetch الـ blob وأضفه مباشرة
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const file = new File([blob], 'recording.wav', { type: 'audio/wav' });
+      formData.append('file', file);
+    } else {
+      // ✅ على الموبايل: URI مباشر
+      formData.append('file', {
+        uri: uri,
+        type: 'audio/wav',
+        name: 'recording.wav',
+      } as any);
+    }
+
     formData.append('model', 'whisper-large-v3-turbo');
     formData.append('language', 'ar');
 
@@ -26,7 +34,7 @@ export const speechToText = async (uri: string): Promise<string> => {
           Authorization: `Bearer ${GROQ_API_KEY}`,
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 15000,
+        timeout: 60000,
       }
     );
 
@@ -38,7 +46,6 @@ export const speechToText = async (uri: string): Promise<string> => {
     throw error;
   }
 };
-
 // ✅ الخطوة 2: معالجة النص بالذكاء الاصطناعي
 export interface ParsedOrder {
   name: string;

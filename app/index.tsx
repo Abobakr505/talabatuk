@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, startTransition } from 'react';
+import React, { useState, useEffect, useRef, useCallback, startTransition  } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
   Alert,
   Animated,
   StyleSheet,
+  Share,
 } from 'react-native';
 import { useOrders } from '@/contexts/OrdersContext';
 import { OrderCard } from '@/components/OrderCard';
 import { OrderModal } from '@/components/OrderModal';
 import { Order } from '@/types/order';
-import { Plus, BadgeCheck, Trash2 } from 'lucide-react-native';
+import { Plus, BadgeCheck, Trash2, Share2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { VoiceButton } from '@/components/VoiceButton';
 
@@ -114,6 +115,34 @@ export default function HomeScreen() {
     );
   }, [handleToggle, handleEdit, handleDelete]);
 
+  const handleShare = async () => {
+    if (orders.length === 0) return;
+  
+    const remaining = orders.filter((o) => !o.isPurchased);
+    const completed = orders.filter((o) => o.isPurchased);
+  
+    let message = '🛒 *قائمة التسوق*\n\n';
+  
+    if (remaining.length > 0) {
+      message += '📋 *المطلوب شراؤه:*\n';
+      remaining.forEach((o) => {
+        message += `${o.icon} ${o.name} — الكمية: ${o.quantity}`;
+        if (o.notes) message += ` (${o.notes})`;
+        message += '\n';
+      });
+    }
+  
+    if (completed.length > 0) {
+      message += `\n✅ *تم شراؤه (${completed.length}):*\n`;
+      completed.forEach((o) => {
+        message += `✓ ${o.name}\n`;
+      });
+    }
+  
+    message += `\n📊 الإجمالي: ${orders.length} | المتبقي: ${remaining.length} | المكتمل: ${completed.length}`;
+  
+    await Share.share({ message });
+  };
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -182,7 +211,15 @@ export default function HomeScreen() {
           />
         )}
       </View>
-
+      
+      {orders.length > 0 && (
+  <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+    <LinearGradient colors={["#10b981", "#059669"]} style={styles.shareGradient}>
+      <Share2 size={24} color="#fff" />
+      <Text style={styles.shareText}>مشاركة</Text>
+    </LinearGradient>
+  </TouchableOpacity>
+)}
       {orders.length > 0 && (
         <TouchableOpacity style={styles.clearAllButton} onPress={handleDeleteAll}>
           <LinearGradient colors={["#ef4444", "#dc2626"]} style={styles.clearAllGradient}>
@@ -310,7 +347,7 @@ const styles = StyleSheet.create({
   progressText: {
     color: '#fff',
     fontSize: 15,
-    fontFamily: 'IBMPlexSansArabic-Medium',
+    fontFamily: 'IBMPlexSansArabic-Bold',
     marginTop:4,
   },
 
@@ -394,6 +431,31 @@ const styles = StyleSheet.create({
   clearAllText: {
     color: '#fff',
     fontSize: 14,
+    fontFamily: 'IBMPlexSansArabic-Bold',
+  },
+  shareButton: {
+    position: 'absolute',
+    bottom: 85,  // ✅ فوق زر المسح
+    left: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 8,
+    borderRadius: 32,
+  },
+  shareGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    gap: 8,
+  },
+  shareText: {
+    color: '#fff',
+    fontSize: 16,
     fontFamily: 'IBMPlexSansArabic-Bold',
   },
 });
